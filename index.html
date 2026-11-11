@@ -1,0 +1,654 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>beabaduidui</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;padding:25px 15px;font-family:"Courier",sans-serif;color:#26334a;background:linear-gradient(rgba(20,30,50,.45),rgba(20,30,50,.65)),url("city.jpg") center/cover fixed}
+button{font-family:inherit}
+.hidden{display:none!important}
+
+/* GIF DECORATIONS */
+#gifDecorations{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+.floating-cat{position:absolute;height:auto;object-fit:contain;filter:drop-shadow(0 4px 6px #0005);animation:catFloat 4s ease-in-out infinite}
+.cat-one{left:2%;top:25%;width:100px}
+.cat-two{right:3%;top:48%;width:100px;animation-delay:1s}
+.cat-three{left:8%;bottom:5%;width:100px;animation-delay:2s}
+.shooting-star{position:absolute;top:10px;right:15px;width:300px;height:auto;object-fit:contain;filter:drop-shadow(0 0 12px #fff5a8);transform-origin:center;animation:starShoot 5s ease-in-out infinite}
+
+/* HEADER */
+header{text-align:center;margin:20px auto 35px;position:relative;z-index:2}
+header h1{color:white;font-family:"Press Start 2P",cursive;font-size:clamp(17px,4vw,27px);line-height:1.8;text-shadow:3px 3px #26334a}
+header p{color:white;font-size:15px;font-weight:700}
+
+/* PROFESSOR KUKUI */
+#kukuiOverlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:flex-end;justify-content:center;padding:25px;background:rgba(10,20,35,.50);animation:fadeIn .5s ease}
+#kukuiScene{width:min(900px,100%);display:flex;align-items:flex-end;gap:10px}
+#kukuiImage{width:35%;max-height:430px;object-fit:contain;filter:drop-shadow(0 5px 10px #0008);animation:characterAppear .7s ease}
+#kukuiDialogue{position:relative;flex:1;margin-bottom:20px;padding:20px;background:rgba(255,255,255,.13);border:2px solid rgba(255,255,255,.4);border-radius:20px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 8px 25px #0005}
+.kukui-cat{position:absolute;width:75px;height:auto;object-fit:contain;z-index:5;pointer-events:none;filter:drop-shadow(0 3px 5px #0005)}
+.kukui-cat-top{top:-35px;right:-25px}
+.kukui-cat-bottom{bottom:-30px;left:-25px}
+#kukuiName{position:relative;z-index:2;display:inline-block;padding:10px;margin-bottom:12px;color:white;background:#258ed1;border-radius:8px;font-family:"Press Start 2P",cursive;font-size:10px}
+#kukuiSpeech{position:relative;z-index:2;min-height:100px;padding:15px;background:rgba(255,255,255,.10);border:2px solid rgba(255,255,255,.35);border-radius:12px;color:white;font-size:16px;font-weight:800;line-height:1.7}
+#kukuiContinue{
+position:relative;
+z-index:2;
+display:block;
+margin:15px 0 0 auto;
+padding:0;
+width:85px;
+height:65px;
+background:transparent;
+border:none;
+cursor:pointer;
+}
+#kukuiContinue img{
+display:block;
+width:100%;
+height:100%;
+object-fit:contain;
+transition:transform .2s;
+}
+#kukuiContinue:hover img{
+transform:scale(1.12);
+}
+/* POKEBALL MENU */
+#ballMenu{position:relative;z-index:2;width:100%;margin:35px auto;display:grid;grid-template-columns:230px minmax(0,1fr);grid-template-rows:auto auto auto;align-items:start;column-gap:0;row-gap:15px}
+
+/* BANNER */
+.blinkies-banner{grid-column:1/-1;width:100%;display:flex;justify-content:center;align-items:center;margin:0 auto 10px;padding:0}
+.blinkies-banner img{display:block;width:100%;max-width:1200px;height:auto;object-fit:contain}
+
+/* POKEBALL BUTTONS */
+.ball-option{position:relative;isolation:isolate;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:100%;padding:12px 10px;color:white;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.4);border-radius:18px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);cursor:pointer;opacity:0;animation:ballPop .6s ease forwards;transition:transform .2s,background .2s}
+.ball-option::before{content:"";position:absolute;inset:-100%;z-index:-1;background:linear-gradient(120deg,rgba(255,100,180,.18),rgba(255,220,120,.18),rgba(130,255,220,.18),rgba(130,170,255,.18),rgba(210,130,255,.18),rgba(255,100,180,.18));background-size:300% 300%;animation:rainbowGlass 9s ease infinite;pointer-events:none}
+.ball-option:hover{transform:translateY(-5px) scale(1.02);background:rgba(255,255,255,.25)}
+.ball-option>*{position:relative;z-index:1}
+@keyframes rainbowGlass{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+/* LEFT COLUMN */
+#ballMenu>.ball-option{grid-column:1;width:100%}
+
+/* POKEBALL IMAGES */
+.ball-image{display:block;width:75px;height:75px;object-fit:contain;filter:drop-shadow(0 5px 6px #0005);transition:transform .25s}
+.ball-option:hover .ball-image{transform:rotate(10deg) scale(1.1)}
+.ball-label{font-family:"Press Start 2P",cursive;font-size:8px;text-align:center;line-height:1.8}
+.ball-description{font-size:11px;text-align:center;font-weight:700}
+
+/* TRAVEL BUTTON */
+.travel-button-wrapper{grid-column:1;display:flex;align-items:center;justify-content:center;width:100%}
+.travel-button-wrapper .travel-ball{width:100%;animation-delay:.9s}
+.travel-side-gif{display:none}
+
+/* BUTTON ANIMATIONS */
+#ballMenu>.ball-option:nth-of-type(2){animation-delay:.1s}
+#ballMenu>.ball-option:nth-of-type(3){animation-delay:.3s}
+#ballMenu>.ball-option:nth-of-type(4){animation-delay:.5s}
+#ballMenu>.ball-option:nth-of-type(5){animation-delay:.7s}
+
+/* CENTER IMAGE */
+.center-panel{grid-column:2;grid-row:2/7;align-self:stretch;min-width:0;min-height:500px;margin:0 0 0 14px;padding:0;position:relative;overflow:hidden;border-radius:18px;background:transparent;border:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+.center-panel img{display:block;width:100%;height:100%;min-height:500px;object-fit:cover;object-position:center;border-radius:18px}
+
+/* BOTTOM PIANO */
+.blinkie-bottom{grid-column:1/-1;display:flex;justify-content:center;align-items:center;width:100%;margin:15px auto 10px;padding:0;overflow:visible}
+.blinkie-bottom img{display:block;width:90vw;max-width:none;height:auto;flex-shrink:0}
+
+/* GLASSY CONTENT MODAL */
+#contentOverlay{
+position:fixed;
+inset:0;
+z-index:2000;
+display:flex;
+justify-content:center;
+align-items:center;
+padding:15px;
+background:rgba(10,15,30,.38);
+backdrop-filter:blur(13px);
+-webkit-backdrop-filter:blur(13px);
+animation:fadeIn .25s ease
+}
+
+#contentBox{
+position:relative;
+width:min(750px,100%);
+max-height:85vh;
+overflow-y:auto;
+padding:30px 22px;
+background:rgba(255,255,255,.17);
+border:2px solid rgba(255,255,255,.45);
+border-radius:20px;
+backdrop-filter:blur(22px);
+-webkit-backdrop-filter:blur(22px);
+box-shadow:0 10px 35px #0005,inset 0 1px 1px #ffffff55;
+animation:modalPop .3s ease
+}
+
+#closeContent{
+position:sticky;
+top:0;
+float:right;
+margin:-10px -5px 10px 10px;
+width:35px;
+height:35px;
+color:white;
+background:rgba(255,255,255,.2);
+border:1px solid rgba(255,255,255,.5);
+border-radius:50%;
+backdrop-filter:blur(10px);
+-webkit-backdrop-filter:blur(10px);
+font-size:20px;
+font-weight:900;
+cursor:pointer;
+z-index:500
+}
+
+#contentTitle{
+clear:both;
+color:white;
+font-family:"Press Start 2P",cursive;
+font-size:15px;
+line-height:1.8;
+text-align:center;
+text-shadow:2px 2px 5px #0006
+}
+
+#contentBody{
+margin-top:20px;
+line-height:1.8;
+color:white
+}
+
+/* GLASSY LETTER */
+.letter{
+padding:20px;
+color:#4a3c32;
+background:rgba(255,240,207,.86);
+border:2px solid rgba(255,255,255,.65);
+border-radius:12px;
+backdrop-filter:blur(12px);
+-webkit-backdrop-filter:blur(12px);
+box-shadow:0 5px 20px #0002;
+white-space:pre-line;
+font-size:15px
+}
+
+/* GLASSY MEMORY CARDS */
+.memory-card{
+margin:15px 0;
+padding:15px;
+color:white;
+background:rgba(255,255,255,.14);
+border:1px solid rgba(255,255,255,.4);
+border-radius:15px;
+backdrop-filter:blur(12px);
+-webkit-backdrop-filter:blur(12px);
+box-shadow:0 5px 20px #0002;
+text-align:center
+}
+
+.memory-card img{
+width:100%;
+height:auto;
+max-height:none;
+object-fit:contain;
+border-radius:10px;
+display:block
+}
+
+/* GLASSY SPOTIFY */
+.spotify-frame{
+width:100%;
+height:600px;
+min-height:600px;
+border:2px solid rgba(255,255,255,.45);
+border-radius:12px;
+display:block
+}
+
+.spotify-note{
+margin-top:15px;
+font-size:13px;
+color:white;
+text-align:center
+}
+
+/* GLASSY MAP CONTAINER */
+#world-map{
+width:100%;
+height:430px;
+border:2px solid rgba(255,255,255,.6);
+border-radius:13px;
+z-index:1;
+background:rgba(255,255,255,.2);
+box-shadow:0 5px 20px #0002
+}
+
+.map-intro{
+text-align:center;
+color:white;
+font-size:14px;
+margin-bottom:15px;
+text-shadow:1px 1px 4px #0005
+}
+
+.map-note{
+text-align:center;
+margin-top:12px;
+color:white;
+font-size:12px;
+font-style:italic
+}
+/* TRAVEL MAP */
+.map-intro{text-align:center;color:#665746;font-size:14px;margin-bottom:15px}
+#world-map{width:100%;height:430px;border:3px solid #e7bb58;border-radius:13px;z-index:1;background:#e5e1d8}
+.travel-pin{width:35px;height:35px;display:flex;align-items:center;justify-content:center;background:#ed5555;border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 3px 8px #0005;color:white;font-size:20px;font-weight:900}
+.travel-pin span{transform:rotate(45deg)}
+.leaflet-popup-content-wrapper{border-radius:12px!important;background:#fffaf0!important}
+.leaflet-popup-content{font-family:"Nunito",sans-serif;font-size:13px;line-height:1.6}
+.place-popup{width:230px;font-family:"Nunito",sans-serif;text-align:center}
+.place-popup img{width:100%;height:135px;object-fit:cover;border-radius:10px;margin-bottom:8px;display:block}
+.place-popup h3{margin:3px 0;color:#d65c58;font-family:"Press Start 2P",cursive;font-size:10px;line-height:1.8}
+.place-popup p{margin:5px 0;font-size:13px;line-height:1.5}
+.map-note{text-align:center;margin-top:12px;color:#8a7561;font-size:12px;font-style:italic}
+
+/* ANIMATIONS */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes characterAppear{from{transform:translateX(-80px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes ballPop{0%{opacity:0;transform:scale(.2) translateY(40px)}70%{opacity:1;transform:scale(1.12)}100%{opacity:1;transform:scale(1)}}
+@keyframes modalPop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+@keyframes catFloat{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-15px) rotate(3deg)}}
+@keyframes starShoot{0%,65%,100%{transform:translate(0,0) rotate(0);opacity:.85}72%{transform:translate(-25px,20px) rotate(-8deg);opacity:1}80%{transform:translate(-65px,45px) rotate(-12deg);opacity:.9}88%{transform:translate(0,0) rotate(0);opacity:0}}
+
+/* MOBILE */
+@media(max-width:600px){
+body{padding:15px 10px}
+#kukuiOverlay{align-items:center;padding:12px}
+#kukuiScene{flex-direction:column;align-items:center}
+#kukuiImage{width:55%;max-height:230px}
+#kukuiDialogue{width:100%;margin:-10px 0 0;padding:14px}
+.kukui-cat{width:60px}
+.kukui-cat-top{top:-25px;right:-10px}
+.kukui-cat-bottom{bottom:-20px;left:-10px}
+#kukuiSpeech{min-height:85px;font-size:14px}
+#kukuiContinue{
+width:85px;
+height:65px;
+margin:12px auto 0;
+}
+
+/* MOBILE POKEBALL LAYOUT */
+#ballMenu{width:100%;grid-template-columns:125px minmax(0,1fr);column-gap:0;row-gap:10px;margin:25px auto}
+.blinkies-banner{margin:0 auto 5px}
+.blinkies-banner img{width:100%;max-width:none}
+#ballMenu>.ball-option{width:100%;padding:4px 2px;gap:4px}
+.ball-image{width:62px;height:62px}
+.ball-label{font-size:6px;line-height:1.7}
+.ball-description{font-size:9px}
+.travel-button-wrapper{width:100%;gap:0}
+.travel-button-wrapper .travel-ball{width:100%;padding:4px 2px}
+.travel-side-gif{display:none}
+
+/* MOBILE CENTER IMAGE */
+.center-panel{margin-left:8px;padding:0;min-height:350px;border-radius:12px}
+.center-panel img{
+width:95%;
+min-height:0;
+height:320px;
+object-fit:contain;
+border-radius:12px
+}
+
+#ballMenu::after{min-height:350px}
+#contentBox{padding:20px 15px}
+#world-map{height:380px}
+.place-popup{width:200px}
+.blinkie-bottom{margin:10px auto 5px;width:100%}
+.blinkie-bottom img{width:140%;max-width:none;height:auto}
+.shooting-star{width:180px;top:8px;right:5px}
+.cat-one{width:110px;top:18%;left:0}
+.cat-two{width:85px;top:55%;right:0}
+.cat-three{width:130px;bottom:3%;left:2%}
+}
+
+@media(prefers-reduced-motion:reduce){
+.floating-cat,.shooting-star,.travel-side-gif{animation:none}
+}
+  .skyline-banner{
+width:80%;
+height:130px;
+overflow:hidden;
+margin:0 auto 20px;
+}
+.skyline-banner img{
+display:block;
+width:100%;
+height:100%;
+object-fit:cover;
+object-position:center;
+}
+</style>
+</head>
+<body>
+
+<!-- FLOATING GIF DECORATIONS -->
+<div id="gifDecorations">
+<img src="cat1.gif" class="floating-cat cat-one" alt="">
+<img src="cat2.gif" class="floating-cat cat-two" alt="">
+<img src="cat3.gif" class="floating-cat cat-three" alt="">
+<img src="star1.gif" class="shooting-star" alt="">
+</div>
+
+<!-- PROFESSOR KUKUI INTRO -->
+<div id="kukuiOverlay">
+<div id="kukuiScene">
+<img src="profkukui.png" alt="Professor Kukui" id="kukuiImage">
+<div id="kukuiDialogue">
+<img src="cat8.gif" class="kukui-cat kukui-cat-top" alt="Cute animated cat">
+<div id="kukuiName">Professor Kukui</div>
+<div id="kukuiSpeech"></div>
+<button id="kukuiContinue" aria-label="Next">
+<img src="d18.gif" alt="Next">
+</button>
+<img src="cat8.gif" class="kukui-cat kukui-cat-bottom" alt="Cute animated cat">
+</div>
+</div>
+</div>
+
+<header>
+<div class="skyline-banner">
+<img src="y47.gif" alt="Skyline banner">
+</div>
+<h1>AH! HERE IT IS</h1>
+<p>Le'ts take a look inside!</p>
+</header>
+
+<!-- POKEBALL MENU -->
+<main id="ballMenu" class="hidden">
+
+<div class="blinkies-banner">
+<img src="blinkiesCafe-Dk.gif" alt="Blinkies Cafe banner">
+</div>
+
+<!-- FULL CENTER IMAGE -->
+<div class="center-panel">
+<img src="b1.png" alt="Profile image">
+</div>
+
+<!-- POKEBALL BUTTONS -->
+<button class="ball-option" data-section="letters">
+<img src="p1.png" class="ball-image" alt="Pokeball">
+<div class="ball-label">POKEBALL</div>
+<div class="ball-description">hmmm ♡</div>
+</button>
+
+<button class="ball-option" data-section="spotify">
+<img src="p2.png" class="ball-image" alt="Great Ball">
+<div class="ball-label">GREAT BALL</div>
+<div class="ball-description">let's see...</div>
+</button>
+
+<button class="ball-option" data-section="memories">
+<img src="p3.png" class="ball-image" alt="Ultra Ball">
+<div class="ball-label">ULTRA POKEBALL</div>
+<div class="ball-description">oh! my favorite!!!</div>
+</button>
+
+<button class="ball-option" data-section="special">
+<img src="p4.png" class="ball-image" alt="Master Ball">
+<div class="ball-label">MASTER BALL</div>
+<div class="ball-description">give it a read.....I WON’T PEEK!!!</div>
+</button>
+
+<div class="travel-button-wrapper">
+<button class="ball-option travel-ball" data-section="travel">
+<img src="p5.png" class="ball-image" alt="Travel Ball">
+<div class="ball-label">TRAVEL MAP</div>
+<div class="ball-description">where should we go next?</div>
+</button>
+</div>
+
+<div class="blinkie-bottom">
+<img src="piano2.gif" alt="Piano and hearts animated blinkie">
+</div>
+</main>
+
+<!-- CONTENT MODAL -->
+<div id="contentOverlay" class="hidden">
+<div id="contentBox">
+<button id="closeContent" aria-label="Close">×</button>
+<h2 id="contentTitle"></h2>
+<div id="contentBody"></div>
+</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* PROFESSOR KUKUI DIALOGUE */
+const kukuiLines=[
+"oh! hello there, bianca!",
+"welcome to the wonderful world of pokémon.",
+"guess what? a very powerful pokémon trainer stopped by earlier and left something just for you!",
+"though...she strictly told me NOT to open it >:^",
+"how unfair!",
+"hey...if you ever need a pokemon, don't hesitate to give my wife a call!"
+];
+
+let kukuiLineIndex=0,kukuiCharIndex=0,kukuiTyping=false,typingInterval;
+const kukuiSpeech=document.getElementById("kukuiSpeech");
+const kukuiContinue=document.getElementById("kukuiContinue");
+const kukuiOverlay=document.getElementById("kukuiOverlay");
+const ballMenu=document.getElementById("ballMenu");
+
+function typeKukuiText(){
+clearInterval(typingInterval);
+const text=kukuiLines[kukuiLineIndex];
+kukuiSpeech.textContent="";
+kukuiCharIndex=0;
+kukuiTyping=true;
+typingInterval=setInterval(()=>{
+kukuiSpeech.textContent+=text.charAt(kukuiCharIndex);
+kukuiCharIndex++;
+if(kukuiCharIndex>=text.length){
+clearInterval(typingInterval);
+kukuiTyping=false;
+}
+},35);
+}
+
+kukuiContinue.addEventListener("click",()=>{
+if(kukuiTyping){
+clearInterval(typingInterval);
+kukuiSpeech.textContent=kukuiLines[kukuiLineIndex];
+kukuiTyping=false;
+return;
+}
+kukuiLineIndex++;
+if(kukuiLineIndex<kukuiLines.length){
+typeKukuiText();
+}else{
+clearInterval(typingInterval);
+kukuiOverlay.style.animation="fadeIn .4s reverse";
+setTimeout(()=>{
+kukuiOverlay.classList.add("hidden");
+ballMenu.classList.remove("hidden");
+},400);
+}
+});
+
+window.addEventListener("load",typeKukuiText);
+
+/* CONTENT MODAL */
+const contentOverlay=document.getElementById("contentOverlay");
+const contentTitle=document.getElementById("contentTitle");
+const contentBody=document.getElementById("contentBody");
+const closeContent=document.getElementById("closeContent");
+
+/* WEBSITE CONTENT */
+const sections={
+letters:{
+title:"READ ME!",
+html:`<div class="letter">hi bianca,
+
+  i thought it would be fun to make something u could explore
+
+so yeah, i had fun making this, although i almost
+  gave up kasi ayaw gumana ng page.
+  pero yes,SUPER HAPPY na-publish ko yung site na to!
+
+it may not be that cool (cinram ko to ng isang linggo)
+  pero sana magustuhan mo hehe
+
+<div class="letter-signature">with love, rerei</div></div>`
+},
+spotify:{
+title:"A PLAYLIST",
+html:`<p>i hope u enjoy listening to this playlist as much as i enjoyed putting them here</p>
+<iframe class="spotify-frame" src="https://open.spotify.com/embed/playlist/1jbtWdWxsdu9HM2G5U0Ii7" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+<p class="spotify-note">:)</p>`
+},
+memories:{
+title:"FAV!!!",
+html:`
+<div class="memory-card">
+<img src="bianca.jpg" alt="Bianca">
+<h3>:O</h3>
+</div>
+<div class="memory-card">
+<img src="bianca2.jpg" alt="Bianca">
+<h3>wowieee</h3>
+</div>
+<div class="memory-card">
+<img src="bianca3.jpg" alt="Bianca">
+<h3>kakaproud naman yann!!! WOOOHOOOO</h3>
+</div>
+<div class="memory-card">
+<img src="bianca4.png" alt="Bianca">
+<h3>dyosa dyosa ng buhay ko</h3>
+</div>`
+},
+special:{
+title:"A Special Message ♡",
+html:`<div class="letter">Bianca,
+
+I choose you.
+  
+If someone were to ask me what I would say about you, how would I describe you? How would you want to be remembered?
+
+I would probably say not much. I would probably say that I could cross a storm just to touch the end of your world. I would probably say that I know enough to love you against all odds and reasons, even at the farthest corners of Laniakea (if such a thing were possible). And maybe, if words were ever enough, I would simply say that I choose you.
+
+The more na nakikilala kita, the more I've come to realize something. That loving you is an everyday choice. It's like going on an adventure without knowing what comes next, but somehow knowing that something beautiful will happen. And maybe that's exactly what it's like with you. What we have today, what we had last year, and what we shared in the years before will always be something I carry close to my heart.  Yes I may not get to see you every second of every day, pero somehow, every little part of me is a part of you. You are indeed the torque to my groove, and the tenon to my mortise. An unusual way of describing it, I guess, but some things just simply fit.
+
+ANYWAY, Happiest birthday to the bravest, COOLEST, prettiest, and most passionate person I know!
+
+Today, wala nang 1 sa age mo, and that's okay! Kasi TODAY IS ALSO A NEW BEGINNING! Another opportunity and another chance to start again. I hope this new age brings you love, joy, hope, and big big big things that make you happy, like WADDLES.
+
+As you start this new adventure, I hope you never forget to walk a little slower and continue to wander. Don't get too caught up in life that you forget to appreciate the little things. There are still so many places waiting for you, so many people waiting to cross paths with you, and and and so many wonderful experiences na madi-discover mo pa lang. So yes, I hope you never lose that sense of wonder. Explore, make COOL memories, and NEVER be afraid to take a different route.
+
+I'm so so so proud of you for making it this far. Like, wowwww! Kahit na parang ewan lahat ng pinagdaanan mo, mga taong nakilala mo this year, at pati na rin yung mga small wins na hindi na-celebrate. SO TODAY SHOULD BE CELEBRATED. YOU SHOULD BE CELEBRATED!!!
+
+If there's anything I wish for you, it's that life treats you like you're a diamond in Steven Universe. I hope you never lose the passion that makes you, YOU. Andddd I hope na ma-experience mo lahat ng magagandang bagay na kaya at hindi man kayang ibigay sa'yo ng world.
+
+If someone asks me about you again, I think I might still struggle to find the right words.
+
+Because how do you describe someone who made this world feel extraordinary? How do you explain the comfort of knowing someone? How do you put into words the happiness of witnessing their journey of becoming? At ang privilege na masabing kahit papaano, naging bahagi ka rin ng buhay nila?
+
+Perhaps I'll just say that I knew you, I got to love you, and that if life gave me a thousand different starts, a thousand different routes, I would still find my way to you.
+
+My answer would remain the same.
+I choose you.
+
+<div class="letter-signature">Always, Rerei</div></div>`
+},
+travel:{
+title:"SOMEDAY",
+html:`<p class="map-intro">between here and someday</p>
+<div id="world-map"></div>
+<p class="map-note">click the cute little hearts!</p>`
+}
+};
+
+/* DESTINATIONS */
+const destinations=[
+{name:"PARIS, FRANCE",coordinates:[48.8566,2.3522],image:"paris.jpg",note:"gusto ko mag cafe tayo rito and woking woking"},
+{name:"KYOTO, JAPAN",coordinates:[35.0116,135.7681],image:"kyoto.jpg",note:"ukay ang cute keychains"},
+{name:"SAGADA, PHILIPPINES",coordinates:[17.0833,120.9000],image:"sagada.jpg",note:"we can enjoy the view together!"},
+{name:"VIGAN, ILOCOS",coordinates:[17.5747,120.3869],image:"vigan.jpg",note:"i really think the golden streets of calle crisologo would suit you"},
+{name:"LAS CASAS DE ACUZAR",coordinates:[14.5855,120.3905],image:"lascasas.jpg",note:":))"}
+];
+
+/* TRAVEL MAP */
+let travelMap=null;
+function initializeTravelMap(){
+const mapElement=document.getElementById("world-map");
+if(!mapElement||typeof L==="undefined")return;
+if(travelMap){
+travelMap.invalidateSize();
+return;
+}
+travelMap=L.map("world-map").setView([25,60],2);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+maxZoom:19
+}).addTo(travelMap);
+
+const heartIcon=L.divIcon({
+className:"",
+html:'<div class="travel-pin"><span>♡</span></div>',
+iconSize:[35,35],
+iconAnchor:[17,35],
+popupAnchor:[0,-35]
+});
+
+destinations.forEach(place=>{
+const popupContent=`
+<div class="place-popup">
+<img src="${place.image}" alt="${place.name}" onerror="this.style.display='none'">
+<h3>${place.name}</h3>
+<p>${place.note}</p>
+</div>`;
+L.marker(place.coordinates,{icon:heartIcon})
+.addTo(travelMap)
+.bindPopup(popupContent,{maxWidth:270,minWidth:230});
+});
+}
+
+/* OPEN POKEBALL CONTENT */
+document.querySelectorAll(".ball-option").forEach(button=>{
+button.addEventListener("click",()=>{
+const section=sections[button.dataset.section];
+if(!section)return;
+contentTitle.textContent=section.title;
+contentBody.innerHTML=section.html;
+contentOverlay.classList.remove("hidden");
+if(button.dataset.section==="travel"){
+setTimeout(initializeTravelMap,200);
+}
+});
+});
+
+/* CLOSE MODAL */
+function closeModal(){
+contentOverlay.classList.add("hidden");
+contentBody.innerHTML="";
+}
+closeContent.addEventListener("click",closeModal);
+contentOverlay.addEventListener("click",event=>{
+if(event.target===contentOverlay)closeModal();
+});
+document.addEventListener("keydown",event=>{
+if(event.key==="Escape"&&!contentOverlay.classList.contains("hidden")){
+closeModal();
+}
+});
+</script>
+</body>
+</html>
